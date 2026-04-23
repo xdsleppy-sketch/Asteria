@@ -1,0 +1,14 @@
+node_modules/
+*.log
+npm-start.stdout.log
+npm-start.stderr.log
+server_run.log
+server_err.log
+
+# Local runtime data / private test data
+data/*.json
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
