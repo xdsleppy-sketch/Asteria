@@ -136,25 +136,7 @@
     <div class="home-card reveal">
       <h2>Opinie graczy</h2>
       <div class="reviews-list" id="reviewsList"></div>
-      <p class="home-note" id="reviewsEmpty">Na razie brak opinii - nikt jeszcze nie kupił. Twoja opinia pojawi się tutaj jako pierwsza.</p>
-
-      <div class="review-submit-box">
-        <p class="review-submit-title">Dodaj opinię po zakupie</p>
-        <div class="form-group">
-          <label for="reviewOrderId">ID zamówienia *</label>
-          <input type="text" id="reviewOrderId" placeholder="np. AST-1776942619417-1610" maxlength="64" />
-        </div>
-        <div class="form-group">
-          <label for="reviewNick">Nick z zamówienia *</label>
-          <input type="text" id="reviewNick" placeholder="Twój nick" maxlength="16" />
-        </div>
-        <div class="form-group">
-          <label for="reviewAfterText">Treść opinii *</label>
-          <textarea id="reviewAfterText" minlength="8" maxlength="220" placeholder="Napisz opinię po realizacji zakupu"></textarea>
-        </div>
-        <button type="button" class="btn-secondary" id="submitReviewAfterBtn">Wyślij opinię</button>
-        <p class="note" id="reviewAfterStatus"></p>
-      </div>
+      <p class="home-note" id="reviewsEmpty">Na razie brak opinii po zakupach.</p>
     </div>
 
     <div class="home-card reveal">
@@ -191,6 +173,27 @@
           <p class="admin-role">Trial Support</p>
         </article>
       </div>
+    </div>
+  </section>
+
+  <section class="review-gate" id="reviewGate" style="display: none;" aria-hidden="true">
+    <div class="review-gate-card">
+      <h2>Opinia Po Zakupie</h2>
+      <p class="review-gate-note">Dzięki za zakup. Zanim przejdziesz dalej, napisz krótką opinię czy zakup był legit.</p>
+      <div class="form-group">
+        <label for="forcedReviewOrderId">ID zamówienia</label>
+        <input id="forcedReviewOrderId" type="text" readonly />
+      </div>
+      <div class="form-group">
+        <label for="forcedReviewNick">Nick z zamówienia</label>
+        <input id="forcedReviewNick" type="text" readonly />
+      </div>
+      <div class="form-group">
+        <label for="forcedReviewText">Twoja opinia *</label>
+        <textarea id="forcedReviewText" minlength="8" maxlength="220" placeholder="Np. Wszystko legit, ranga przyszła szybko."></textarea>
+      </div>
+      <button id="forcedReviewSubmitBtn" class="btn-submit" type="button">Wyślij opinię</button>
+      <div id="forcedReviewStatus" class="error-msg"></div>
     </div>
   </section>
 

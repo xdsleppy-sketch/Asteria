@@ -9,12 +9,15 @@ const contactEmailInput = document.getElementById("contactEmail");
 const orderStatus = document.getElementById("orderStatus");
 const reviewsList = document.getElementById("reviewsList");
 const reviewsEmpty = document.getElementById("reviewsEmpty");
-const reviewOrderIdInput = document.getElementById("reviewOrderId");
-const reviewNickInput = document.getElementById("reviewNick");
-const reviewAfterTextInput = document.getElementById("reviewAfterText");
-const submitReviewAfterBtn = document.getElementById("submitReviewAfterBtn");
-const reviewAfterStatus = document.getElementById("reviewAfterStatus");
+const reviewGate = document.getElementById("reviewGate");
+const forcedReviewOrderIdInput = document.getElementById("forcedReviewOrderId");
+const forcedReviewNickInput = document.getElementById("forcedReviewNick");
+const forcedReviewTextInput = document.getElementById("forcedReviewText");
+const forcedReviewSubmitBtn = document.getElementById("forcedReviewSubmitBtn");
+const forcedReviewStatus = document.getElementById("forcedReviewStatus");
 const TIPPLY_CHECKOUT_URL = "https://tipply.pl";
+const PENDING_REVIEW_ORDER_KEY = "pendingReviewOrderId";
+const PENDING_REVIEW_NICK_KEY = "pendingReviewNick";
 
 function formatPrice(value) {
   return `${value} zł`;
@@ -87,6 +90,44 @@ function loadReviews() {
     .catch(() => {
       renderReviews([]);
     });
+}
+
+function openForcedReviewGate(orderId, nick) {
+  if (!reviewGate || !forcedReviewOrderIdInput || !forcedReviewNickInput) {
+    return;
+  }
+
+  forcedReviewOrderIdInput.value = orderId;
+  forcedReviewNickInput.value = nick;
+  if (forcedReviewTextInput) {
+    forcedReviewTextInput.value = "";
+  }
+  if (forcedReviewStatus) {
+    forcedReviewStatus.textContent = "";
+  }
+
+  reviewGate.style.display = "grid";
+  reviewGate.setAttribute("aria-hidden", "false");
+}
+
+function closeForcedReviewGate() {
+  if (!reviewGate) {
+    return;
+  }
+
+  reviewGate.style.display = "none";
+  reviewGate.setAttribute("aria-hidden", "true");
+}
+
+function bootstrapForcedReviewGate() {
+  const orderId = localStorage.getItem(PENDING_REVIEW_ORDER_KEY) || "";
+  const nick = localStorage.getItem(PENDING_REVIEW_NICK_KEY) || "";
+  if (!orderId || !nick) {
+    closeForcedReviewGate();
+    return;
+  }
+
+  openForcedReviewGate(orderId, nick);
 }
 
 function validateForm() {
@@ -198,6 +239,10 @@ checkoutBtn.addEventListener("click", () => {
 
       cart.clear();
       renderCart();
+
+      localStorage.setItem(PENDING_REVIEW_ORDER_KEY, String(data.orderId || ""));
+      localStorage.setItem(PENDING_REVIEW_NICK_KEY, playerNickInput.value.trim());
+
       setStatus(`Zamówienie ${data.orderId} zapisane. Przekierowuję do Tipply...`, "ok");
       setTimeout(() => {
         window.location.href = TIPPLY_CHECKOUT_URL;
@@ -208,18 +253,11 @@ checkoutBtn.addEventListener("click", () => {
       setStatus(message, "err");
 
       if (error?.pendingReviewOrderId) {
-        if (reviewOrderIdInput) {
-          reviewOrderIdInput.value = String(error.pendingReviewOrderId);
-        }
-        if (reviewNickInput) {
-          reviewNickInput.value = String(error.pendingReviewNick || playerNickInput.value.trim());
-        }
-        if (reviewAfterStatus) {
-          reviewAfterStatus.textContent = "Najpierw dodaj opinię do poprzedniego zakupu, potem kupisz kolejną rangę.";
-          reviewAfterStatus.classList.remove("ok");
-          reviewAfterStatus.classList.add("err");
-        }
-        document.getElementById("home")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        const pendingOrderId = String(error.pendingReviewOrderId);
+        const pendingNick = String(error.pendingReviewNick || playerNickInput.value.trim());
+        localStorage.setItem(PENDING_REVIEW_ORDER_KEY, pendingOrderId);
+        localStorage.setItem(PENDING_REVIEW_NICK_KEY, pendingNick);
+        openForcedReviewGate(pendingOrderId, pendingNick);
       }
 
       if (cart.size > 0) {
@@ -228,25 +266,22 @@ checkoutBtn.addEventListener("click", () => {
     });
 });
 
-if (submitReviewAfterBtn) {
-  submitReviewAfterBtn.addEventListener("click", () => {
-    const orderId = reviewOrderIdInput?.value.trim() || "";
-    const nick = reviewNickInput?.value.trim() || "";
-    const text = reviewAfterTextInput?.value.trim() || "";
+if (forcedReviewSubmitBtn) {
+  forcedReviewSubmitBtn.addEventListener("click", () => {
+    const orderId = (localStorage.getItem(PENDING_REVIEW_ORDER_KEY) || "").trim();
+    const nick = (localStorage.getItem(PENDING_REVIEW_NICK_KEY) || "").trim();
+    const text = forcedReviewTextInput?.value.trim() || "";
 
     if (!orderId || !nick || text.length < 8) {
-      if (reviewAfterStatus) {
-        reviewAfterStatus.textContent = "Podaj ID zamówienia, nick i opinię (min. 8 znaków).";
-        reviewAfterStatus.classList.remove("ok");
-        reviewAfterStatus.classList.add("err");
+      if (forcedReviewStatus) {
+        forcedReviewStatus.textContent = "Napisz opinię min. 8 znaków.";
       }
       return;
     }
 
-    submitReviewAfterBtn.disabled = true;
-    if (reviewAfterStatus) {
-      reviewAfterStatus.textContent = "Zapisywanie opinii...";
-      reviewAfterStatus.classList.remove("ok", "err");
+    forcedReviewSubmitBtn.disabled = true;
+    if (forcedReviewStatus) {
+      forcedReviewStatus.textContent = "Zapisywanie opinii...";
     }
 
     fetch(`/api/orders/${encodeURIComponent(orderId)}/review`, {
@@ -265,31 +300,29 @@ if (submitReviewAfterBtn) {
           throw new Error(data.error || "Nie udało się zapisać opinii.");
         }
 
-        loadReviews();
-        if (reviewAfterStatus) {
-          reviewAfterStatus.textContent = "Dzięki! Opinia została dodana.";
-          reviewAfterStatus.classList.remove("err");
-          reviewAfterStatus.classList.add("ok");
+        localStorage.removeItem(PENDING_REVIEW_ORDER_KEY);
+        localStorage.removeItem(PENDING_REVIEW_NICK_KEY);
+        closeForcedReviewGate();
+
+        if (forcedReviewStatus) {
+          forcedReviewStatus.textContent = "";
         }
-        if (reviewAfterTextInput) {
-          reviewAfterTextInput.value = "";
-        }
+        setStatus("Dzięki za opinię. Możesz teraz normalnie robić kolejne zakupy.", "ok");
       })
       .catch((error) => {
-        if (reviewAfterStatus) {
-          reviewAfterStatus.textContent = error.message;
-          reviewAfterStatus.classList.remove("ok");
-          reviewAfterStatus.classList.add("err");
+        if (forcedReviewStatus) {
+          forcedReviewStatus.textContent = error.message;
         }
       })
       .finally(() => {
-        submitReviewAfterBtn.disabled = false;
+        forcedReviewSubmitBtn.disabled = false;
       });
   });
 }
 
 renderCart();
 loadReviews();
+bootstrapForcedReviewGate();
 
 const toggleRulesBtn = document.getElementById("toggleRulesBtn");
 const rulesMore = document.getElementById("rulesMore");
